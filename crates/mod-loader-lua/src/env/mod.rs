@@ -7,6 +7,7 @@ mod log;
 mod table;
 mod hasher;
 mod io;
+mod json;
 mod buffer;
 mod loader;
 mod image;
@@ -19,6 +20,7 @@ pub use app_state::*;
 #[allow(unused_imports)]
 use game::{Content, Resource, Type, value};
 use buffer::Buffer;
+use util::add_function;
 
 pub fn register(
     lua: &mlua::Lua,
@@ -26,6 +28,8 @@ pub fn register(
     r#mod: &Mod,
 ) -> mlua::Result<()> {
     let lua_builtin = lua.create_table()?;
+
+    add_function(lua, &env, "tojson", json::lua_tojson)?;
 
     let lua_io = io::create(lua, r#mod.clone())?;
     let lua_integer = integer::create(lua)?;

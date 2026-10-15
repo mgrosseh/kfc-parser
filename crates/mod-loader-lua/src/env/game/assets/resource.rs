@@ -1,9 +1,11 @@
 use std::rc::Rc;
 
 use kfc::reflection::LookupKey;
-use mlua::UserData;
+use mlua::{AnyUserData, ObjectLike, UserData};
 
-use crate::{env::{AppState, ResourceInfo}, lua::LuaValue};
+use crate::{alias::TypeHandle, env::{AppState, ResourceInfo, game::Type}, lua::{LuaValue, MethodArgs}};
+
+use super::value::convert_lua_to_json;
 
 pub struct Resource {
     info: Rc<ResourceInfo>,
@@ -49,4 +51,18 @@ impl UserData for Resource {
         });
     }
 
+    // TODO
+    // fn add_methods<M: mlua::prelude::LuaUserDataMethods<Self>>(methods: &mut M) {
+
+    //     methods.add_meta_function("__to_json", |lua, args: MethodArgs| {
+    //         let this = args.this::<&Self>()?;
+    //         let luathis = args.this::<LuaValue>()?;
+
+    //         let pretty = args.try_get::<bool>(0)?.unwrap_or(false);
+
+    //         let typehandle = luathis.as_userdata().unwrap().call_method::<Type>("type", ())?;
+
+    //         Ok(LuaValue::String(lua.create_string(convert_lua_to_json(luathis, typehandle.handle(), pretty)?)?))
+    //     });
+    // }
 }

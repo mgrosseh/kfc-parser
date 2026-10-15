@@ -2,10 +2,12 @@ use std::{cell::{Cell, RefCell}, collections::HashMap, ops::Deref, rc::Rc};
 
 use indexmap::IndexMap;
 use kfc::{resource::value::{Value, Variant}, reflection::{PrimitiveType, TypeMetadata}};
-use mlua::{AnyUserData, Function, MetaMethod, UserData};
+use mlua::{AnyUserData, Function, IntoLua, MetaMethod, UserData};
 use ouroboros::self_referencing;
 
 use crate::{alias::{MappedArray, MappedStruct, MappedVariant, TypeHandle}, env::{game::value::is_dirty_lua_value, value::{converter::{Converter, LuaConversionErrorKind, value_to_lua}, name_of, validate_and_clone_lua_value, validator::try_clone_lua_value}}, lua::{FunctionArgs, LuaError, LuaValue, MethodArgs}};
+
+use super::{convert_lua_to_value, convert_lua_to_json};
 
 // TODO: Add MappedBitmaskValue
 
@@ -277,6 +279,15 @@ impl UserData for MappedStructValue {
             result.push('}');
 
             Ok(LuaValue::String(lua.create_string(result)?))
+        });
+
+        methods.add_meta_function("__to_json", |lua, args: MethodArgs| {
+            let this = args.this::<&Self>()?;
+            let luathis = args.this::<LuaValue>()?;
+
+            let pretty = args.try_get::<bool>(0)?.unwrap_or(false);
+
+            Ok(LuaValue::String(lua.create_string(convert_lua_to_json(luathis, this.r#type(), pretty)?)?))
         });
     }
 
@@ -680,6 +691,15 @@ impl UserData for MappedArrayValue {
 
             Ok(LuaValue::String(lua.create_string(result)?))
         });
+
+        methods.add_meta_function("__to_json", |lua, args: MethodArgs| {
+            let this = args.this::<&Self>()?;
+            let luathis = args.this::<LuaValue>()?;
+
+            let pretty = args.try_get::<bool>(0)?.unwrap_or(false);
+
+            Ok(LuaValue::String(lua.create_string(convert_lua_to_json(luathis, this.r#type(), pretty)?)?))
+        });
     }
 
 }
@@ -849,6 +869,17 @@ impl UserData for MappedVariantValue {
             this.dirty.set(true);
 
             Ok(())
+        });
+    }
+
+    fn add_methods<M: mlua::UserDataMethods<Self>>(methods: &mut M) {
+        methods.add_meta_function("__to_json", |lua, args: MethodArgs| {
+            let this = args.this::<&Self>()?;
+            let luathis = args.this::<LuaValue>()?;
+
+            let pretty = args.try_get::<bool>(0)?.unwrap_or(false);
+
+            Ok(LuaValue::String(lua.create_string(convert_lua_to_json(luathis, this.r#type(), pretty)?)?))
         });
     }
 

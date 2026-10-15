@@ -11,7 +11,7 @@ fn main() {
         .expect("Failed to convert def path to string");
 
     match target.as_str() {
-        "x86_64-pc-windows-gnu" => {
+        "x86_64-pc-windows-gnu" | "x86_64-unknown-linux-gnu" => {
             println!("cargo:rustc-link-arg={def_path}");
         }
         "x86_64-pc-windows-msvc" => {

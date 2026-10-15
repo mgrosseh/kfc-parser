@@ -5,7 +5,7 @@ use mlua::{IntoLua, Table, UserData};
 use once_cell::unsync::OnceCell;
 use indexmap::IndexMap;
 
-use crate::{alias::TypeHandle, env::{util::add_function, value::type_of, AppState}, lua::{Either, FunctionArgs, LuaValue}, util::{ReadOnlyArray, ReadOnlyMap}};
+use crate::{alias::TypeHandle, env::{AppState, util::add_function, value::type_of}, lua::{Either, FunctionArgs, LuaError, LuaValue, MethodArgs}, util::{ReadOnlyArray, ReadOnlyMap}};
 
 pub fn create(
     lua: &mlua::Lua
@@ -161,6 +161,10 @@ impl Type {
         }
     }
 
+    pub fn handle(&self) -> &TypeHandle {
+        &self.handle
+    }
+
 }
 
 impl Deref for Type {
@@ -216,6 +220,18 @@ impl UserData for Type {
             this.attribute_cache.get_or_try_init(|| {
                 attributes_to_lua(lua, &lua.app_data_ref().unwrap(), &this.attributes)
             }).cloned()
+        });
+    }
+
+    fn add_methods<M: mlua::prelude::LuaUserDataMethods<Self>>(methods: &mut M) {
+
+        methods.add_meta_function("__to_json", |lua, args: MethodArgs| {
+            let this = args.this::<&Self>()?;
+
+            let pretty = args.try_get::<bool>(0)?.unwrap_or(false);
+
+            let string = if pretty { serde_json::to_string_pretty(&this.qualified_name) } else { serde_json::to_string(&this.qualified_name) }.map_err(LuaError::external)?;
+            Ok(LuaValue::String(lua.create_string(string)?))
         });
     }
 

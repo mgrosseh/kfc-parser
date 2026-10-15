@@ -2,7 +2,7 @@ use std::any::TypeId;
 use kfc::{resource::value::Value, reflection::{PrimitiveType, TypeIndex}};
 use mlua::AnyUserData;
 
-use crate::{alias::{MappedValue, TypeHandle}, env::value::{converter::{value_to_lua, Converter, LuaConversionError}, mapped::{MappedArrayValue, MappedStructValue, MappedVariantValue}, simple::{ArrayValue, StructValue, VariantValue}, validator::{LuaValidationError, Validator}}, lua::LuaValue};
+use crate::{alias::{MappedValue, TypeHandle}, env::value::{converter::{Converter, LuaConversionError, value_to_lua}, mapped::{MappedArrayValue, MappedStructValue, MappedVariantValue}, simple::{ArrayValue, StructValue, VariantValue}, validator::{LuaValidationError, Validator}}, lua::{LuaError, LuaValue}};
 
 mod converter;
 mod validator;
@@ -15,6 +15,15 @@ pub fn convert_lua_to_value(
     r#type: &TypeHandle,
 ) -> Result<Value, LuaConversionError> {
     Converter::convert(lua_value, r#type)
+}
+
+pub fn convert_lua_to_json(
+    lua_value: &LuaValue,
+    r#type: &TypeHandle,
+    pretty: bool,
+) -> Result<String, mlua::Error> {
+    let v = convert_lua_to_value(lua_value, r#type).map_err(LuaError::external)?;
+    if pretty { serde_json::to_string_pretty(&v) } else { serde_json::to_string(&v) }.map_err(LuaError::external)
 }
 
 pub fn convert_value_to_lua(

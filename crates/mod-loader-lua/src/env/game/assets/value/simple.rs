@@ -7,6 +7,8 @@ use ouroboros::self_referencing;
 
 use crate::{alias::TypeHandle, env::value::{converter::{Converter, LuaConversionErrorKind}, name_of, validate_and_clone_lua_value, validator::try_clone_lua_value}, lua::{FunctionArgs, LuaError, LuaValue, MethodArgs}};
 
+use super::convert_lua_to_json;
+
 pub struct StructValue {
     r#type: TypeHandle,
     fields: Rc<RefCell<HashMap<String, LuaValue>>>,
@@ -179,6 +181,15 @@ impl UserData for StructValue {
             result.push('}');
 
             Ok(LuaValue::String(lua.create_string(result)?))
+        });
+
+        methods.add_meta_function("__to_json", |lua, args: MethodArgs| {
+            let this = args.this::<&Self>()?;
+            let luathis = args.this::<LuaValue>()?;
+
+            let pretty = args.try_get::<bool>(0)?.unwrap_or(false);
+
+            Ok(LuaValue::String(lua.create_string(convert_lua_to_json(luathis, this.r#type(), pretty)?)?))
         });
     }
 
@@ -494,6 +505,15 @@ impl UserData for ArrayValue {
 
             Ok(LuaValue::String(lua.create_string(result)?))
         });
+
+        methods.add_meta_function("__to_json", |lua, args: MethodArgs| {
+            let this = args.this::<&Self>()?;
+            let luathis = args.this::<LuaValue>()?;
+
+            let pretty = args.try_get::<bool>(0)?.unwrap_or(false);
+
+            Ok(LuaValue::String(lua.create_string(convert_lua_to_json(luathis, this.r#type(), pretty)?)?))
+        });
     }
 
 }
@@ -631,6 +651,18 @@ impl UserData for VariantValue {
                 .map_err(LuaError::external)?;
 
             Ok(())
+        });
+    }
+
+
+    fn add_methods<M: mlua::UserDataMethods<Self>>(methods: &mut M) {
+        methods.add_meta_function("__to_json", |lua, args: MethodArgs| {
+            let this = args.this::<&Self>()?;
+            let luathis = args.this::<LuaValue>()?;
+
+            let pretty = args.try_get::<bool>(0)?.unwrap_or(false);
+
+            Ok(LuaValue::String(lua.create_string(convert_lua_to_json(luathis, this.r#type(), pretty)?)?))
         });
     }
 
